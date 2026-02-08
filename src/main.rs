@@ -1,5 +1,5 @@
 use eframe::egui;
-use opencv::{core, imgproc, prelude::*, videoio};
+use opencv::{core, imgproc, opencv_has_inherent_feature_algorithm_hint, prelude::*, videoio};
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -105,13 +105,24 @@ impl VideoApp {
             let mut frame = core::Mat::default();
             if cap.read(&mut frame).unwrap_or(false) && !frame.empty() {
                 let mut rgb_frame = core::Mat::default();
-                let _ = imgproc::cvt_color(
-                    &frame,
-                    &mut rgb_frame,
-                    imgproc::COLOR_BGR2RGB,
-                    0,
-                    core::AlgorithmHint::ALGO_HINT_DEFAULT,
-                );
+
+                opencv_has_inherent_feature_algorithm_hint! { {
+                        let _ = imgproc::cvt_color(
+                            &frame,
+                            &mut rgb_frame,
+                            imgproc::COLOR_BGR2RGB,
+                            0,
+                            core::AlgorithmHint::ALGO_HINT_DEFAULT,
+                        );
+                    } else {
+                        let _ = imgproc::cvt_color(
+                            &frame,
+                            &mut rgb_frame,
+                            imgproc::COLOR_BGR2RGB,
+                            0
+                        );
+                    }
+                }
                 let size = rgb_frame.size().unwrap();
                 let data = rgb_frame.data_bytes().unwrap();
                 let color_image =
@@ -184,8 +195,8 @@ impl VideoApp {
                 let mut filters = vec!["fps=16".to_string()];
                 if let Some(ref norm) = range.crop_rect_norm {
                     // Ensure dimensions are even numbers (requirement for many encoders)
-                    let mut cw = ((norm.max_x - norm.min_x).abs() as f64 * vid_w) as i32 & !1;
-                    let mut ch = ((norm.max_y - norm.min_y).abs() as f64 * vid_h) as i32 & !1;
+                    let cw = ((norm.max_x - norm.min_x).abs() as f64 * vid_w) as i32 & !1;
+                    let ch = ((norm.max_y - norm.min_y).abs() as f64 * vid_h) as i32 & !1;
                     let cx = (norm.min_x.min(norm.max_x) as f64 * vid_w) as i32;
                     let cy = (norm.min_y.min(norm.max_y) as f64 * vid_h) as i32;
                     filters.push(format!("crop={}:{}:{}:{}", cw, ch, cx, cy));
