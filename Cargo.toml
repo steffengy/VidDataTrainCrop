@@ -1,0 +1,11 @@
+[package]
+name = "viddatatraincrop"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = { version = "0.33", features = ["glow", "default_fonts", "serde"] } # GUI
+rfd = "0.17"    # File dialogs
+serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4"  # For time formatting
+opencv = "0.98"

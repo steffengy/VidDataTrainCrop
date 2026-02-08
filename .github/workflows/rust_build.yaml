@@ -1,0 +1,58 @@
+name: Rust Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: vid-data-tool-windows.exe
+            asset_name: vid-data-tool-windows
+          - os: ubuntu-latest
+            artifact_name: vid-data-tool-linux
+            asset_name: vid-data-tool-linux
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # 1. Install System Dependencies (OpenCV)
+    - name: Install OpenCV (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopencv-dev clang libclang-dev
+
+    - name: Install OpenCV (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        vcpkg install opencv4:x64-windows
+        echo "OPENCV_LINK_PATHS=C:/vcpkg/installed/x64-windows/lib" >> $GITHUB_ENV
+        echo "OPENCV_LINK_LIBS=opencv_world4" >> $GITHUB_ENV
+
+    # 2. Setup Rust
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    # 3. Build
+    - name: Build Release
+      run: cargo build --release
+
+    # 4. Upload Artifacts
+    - name: Upload Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: |
+          target/release/vid-data-tool-windows.exe
+          target/release/vid-data-tool-linux
