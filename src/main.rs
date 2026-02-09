@@ -245,27 +245,29 @@ impl eframe::App for VideoApp {
         let mut video_to_load = None;
 
         // Keyboard Logic
-        if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
-            self.pause_play();
-        }
-        if !self.ranges.is_empty() {
-            if ctx.input(|i| i.key_pressed(egui::Key::I)) {
-                self.ranges[self.current_range_idx].start_time = self.current_time;
+        if !ctx.wants_keyboard_input() {
+            if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
+                self.pause_play();
             }
-            if ctx.input(|i| i.key_pressed(egui::Key::O)) {
-                self.ranges[self.current_range_idx].end_time = self.current_time;
+            if !self.ranges.is_empty() {
+                if ctx.input(|i| i.key_pressed(egui::Key::I)) {
+                    self.ranges[self.current_range_idx].start_time = self.current_time;
+                }
+                if ctx.input(|i| i.key_pressed(egui::Key::O)) {
+                    self.ranges[self.current_range_idx].end_time = self.current_time;
+                }
+                if ctx.input(|i| i.key_pressed(egui::Key::R)) {
+                    let range = &self.ranges[self.current_range_idx];
+                    self.current_time = range.start_time;
+                    self.play_state = PlayState::PlayingUntil(range.end_time);
+                }
             }
-            if ctx.input(|i| i.key_pressed(egui::Key::R)) {
-                let range = &self.ranges[self.current_range_idx];
-                self.current_time = range.start_time;
-                self.play_state = PlayState::PlayingUntil(range.end_time);
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+                self.prev_frame(ctx);
             }
-        }
-        if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
-            self.prev_frame(ctx);
-        }
-        if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
-            self.next_frame(ctx);
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+                self.next_frame(ctx);
+            }
         }
 
         // Panels

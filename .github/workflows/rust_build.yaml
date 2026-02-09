@@ -18,11 +18,11 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: vid-data-tool-windows.exe
-            asset_name: vid-data-tool-windows
+            artifact_name: vidDataToolWin64.exe
+            asset_name: vidDataToolWin64
           - os: ubuntu-latest
-            artifact_name: vid-data-tool-linux
-            asset_name: vid-data-tool-linux
+            artifact_name: vidDataToolLinux
+            asset_name: vidDataToolLinux
 
     steps:
     - uses: actions/checkout@v4
