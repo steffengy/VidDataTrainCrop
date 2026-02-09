@@ -37,9 +37,7 @@ jobs:
     - name: Install OpenCV (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        vcpkg install opencv4:x64-windows
-        echo "OPENCV_LINK_PATHS=C:/vcpkg/installed/x64-windows/lib" >> $GITHUB_ENV
-        echo "OPENCV_LINK_LIBS=opencv_world4" >> $GITHUB_ENV
+        choco install -y opencv
 
     # 2. Setup Rust
     - name: Set up Rust
@@ -55,5 +53,5 @@ jobs:
       with:
         name: ${{ matrix.asset_name }}
         path: |
-          target/release/vid-data-tool-windows.exe
-          target/release/vid-data-tool-linux
+          target/release/viddatatraincrop.exe
+          target/release/viddatatraincrop
