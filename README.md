@@ -4,6 +4,8 @@ A lightweight, Rust-powered video utility designed for rapid data labeling, rang
 This tool allows you to load folders of videos, mark specific time ranges with custom notes, apply spatial crops, and export them as high-quality training samples.
 Inspired by https://github.com/lovisdotio/VidTrainPrep in some way.
 
+![Quick UI Preview](example.png)
+
 ## ✨ Features
 
 * **Folder-Based Workflow:** Quickly swap between multiple videos in a directory via the side navigation.
