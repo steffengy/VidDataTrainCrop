@@ -8,4 +8,4 @@ eframe = { version = "0.33", features = ["glow", "default_fonts", "serde"] } # G
 rfd = "0.17"    # File dialogs
 serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4"  # For time formatting
-opencv = { version = "0.98", default-features = false, features = ["imgproc", "videoio"] }
+opencv = { version = "0.98", default-features = false, features = ["imgproc", "imgcodecs", "videoio"] }

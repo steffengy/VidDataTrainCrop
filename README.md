@@ -14,6 +14,7 @@ Inspired by https://github.com/lovisdotio/VidTrainPrep in some way.
 * **Spatial Cropping:** Interactive click-and-drag cropping directly on the video preview.
 * **Visual Feedback:** The timeline slider features color-coded markers (Green for Start, Red for End) to visualize your active segment.
 * **Metadata Export:** Saves range-specific notes as `.txt` caption files alongside exported video clips.
+* **Image Cropping:** As part of one stop solution also does image cropping saving it in the original format.
 * **FFmpeg Integration:**
 
 ---
