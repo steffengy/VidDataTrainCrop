@@ -44,6 +44,7 @@ struct VideoApp {
     drag_start_norm: Option<egui::Pos2>,
     is_exporting: Arc<AtomicBool>,
     export_error: Arc<Mutex<Option<String>>>,
+    frame_text: String,
 }
 
 impl Default for VideoApp {
@@ -69,6 +70,7 @@ impl Default for VideoApp {
             drag_start_norm: None,
             is_exporting: Arc::new(AtomicBool::new(false)),
             export_error: Arc::new(Mutex::new(None)),
+            frame_text: "0".to_string(),
         }
     }
 }
@@ -460,16 +462,37 @@ impl eframe::App for VideoApp {
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                ui.label(format!(
-                    "Native Frame: {}",
-                    (self.current_time * self.native_fps) as i32
-                ));
+                ui.label("Native Frame:");
+
+                // Pass our persistent string to the TextEdit
+                let response = ui.add(
+                    egui::TextEdit::singleline(&mut self.frame_text)
+                        .desired_width(80.0)
+                );
+
+                // 1. If the user presses Enter, parse the text and update the video
+                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    if let Ok(frame_num) = self.frame_text.trim().parse::<i32>() {
+                        self.current_time = (frame_num as f64) / self.native_fps;
+                        self.current_time = self.current_time.clamp(0.0, self.duration);
+                        self.update_frame(ctx);
+                    }
+                }
+
+                // 2. ONLY sync the text box to the video time if the user IS NOT typing
+                if !response.has_focus() {
+                    let current_frame = (self.current_time * self.native_fps) as i32;
+                    self.frame_text = current_frame.to_string();
+                }
+
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label(format!("Target 16FPS: {:.1}", self.current_time * 16.0));
                 });
             });
 
-            ui.spacing_mut().slider_width = avail_w - 60.0;
+            let track_width = avail_w - 60.0;
+            ui.spacing_mut().slider_width = track_width;
+
             // 1. Draw the Slider first
             let slider_res = ui.add(
                 egui::Slider::new(&mut self.current_time, 0.0..=self.duration)
@@ -488,7 +511,7 @@ impl eframe::App for VideoApp {
                 // Helper to turn video time into a horizontal screen coordinate
                 let time_to_x = |time: f64| {
                     let pct = (time / self.duration) as f32;
-                    rect.min.x + pct * rect.width()
+                    rect.min.x + pct * track_width
                 };
 
                 let painter = ui.painter();
