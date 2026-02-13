@@ -443,18 +443,31 @@ impl eframe::App for VideoApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let mut avail_w = ui.available_width();
-            let avail_h = ui.available_height();
-            if (avail_h - avail_w * 0.56) < 200.0 {
-                avail_w = (avail_h - 300.0) / 0.56;
-            }
+            let mut avail_size = ui.available_size();
+            avail_size.y = avail_size.y - 280.0;
+            let mut avail_w = avail_size.x;
 
-            let (rect, response) = ui.allocate_at_least(
-                egui::vec2(avail_w, avail_w * 0.56),
-                egui::Sense::click_and_drag(),
-            );
+            // 1. Determine the display rectangle based on texture aspect ratio
+            let rect = if let Some(tex) = &self.video_texture {
+                let tex_size = tex.size_vec2();
+                let scale = (avail_size.x / tex_size.x).min(avail_size.y / tex_size.y);
+                let display_size = tex_size * scale;
 
+                // Center the image in the available space
+                let left_top = ui.cursor().min + (avail_size - display_size) * 0.5;
+                egui::Rect::from_min_size(left_top, display_size)
+            } else {
+                // Fallback if no video is loaded
+                let fallback_h = avail_size.x * 0.5625;
+                ui.allocate_exact_size(egui::vec2(avail_size.x, fallback_h), egui::Sense::hover()).0
+            };
+
+            // Allocate the interaction area at the calculated rect
+            let response = ui.interact(rect, ui.id().with("video_interact"), egui::Sense::click_and_drag());
+
+            // 2. Paint the background and the image
             if let Some(tex) = &self.video_texture {
+                ui.painter().rect_filled(rect, 0.0, egui::Color32::BLACK); // Black bars area
                 ui.painter().image(
                     tex.id(),
                     rect,
@@ -465,7 +478,7 @@ impl eframe::App for VideoApp {
                 ui.painter().rect_filled(rect, 0.0, egui::Color32::BLACK);
             }
 
-            // Crop Handling
+            // 3. Coordinate mapping (Now uses the correctly aspect-ratioed 'rect')
             let to_norm = |p: egui::Pos2| {
                 egui::pos2(
                     (p.x - rect.min.x) / rect.width(),
@@ -479,6 +492,7 @@ impl eframe::App for VideoApp {
                 )
             };
 
+            // --- Crop Handling (Remains the same logic, but uses updated rect) ---
             if !self.ranges.is_empty() {
                 if response.drag_started() {
                     self.drag_start_norm = response.interact_pointer_pos().map(to_norm);
@@ -489,12 +503,13 @@ impl eframe::App for VideoApp {
                         response.interact_pointer_pos().map(to_norm),
                     ) {
                         let r = egui::Rect::from_two_pos(start, now);
+                        // Clamp to 0.0-1.0 to prevent cropping outside the image
                         self.ranges[self.current_range_idx].crop_rect_norm =
                             Some(SerializableRect {
-                                min_x: r.min.x,
-                                min_y: r.min.y,
-                                max_x: r.max.x,
-                                max_y: r.max.y,
+                                min_x: r.min.x.clamp(0.0, 1.0),
+                                min_y: r.min.y.clamp(0.0, 1.0),
+                                max_x: r.max.x.clamp(0.0, 1.0),
+                                max_y: r.max.y.clamp(0.0, 1.0),
                             });
                     }
                 }
@@ -512,6 +527,10 @@ impl eframe::App for VideoApp {
                     );
                 }
             }
+
+            // 4. Playback Controls / UI below the video
+            ui.advance_cursor_after_rect(rect);
+            ui.add_space(8.0);
 
             // 5. Hide the timeline/playback info if we are looking at a static image
             if !self.is_image {
