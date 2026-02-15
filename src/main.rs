@@ -1,6 +1,7 @@
 use eframe::egui;
 use opencv::{core, imgcodecs, imgproc, opencv_has_inherent_feature_algorithm_hint, prelude::*, videoio};
 use std::cmp::Ordering;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
@@ -38,7 +39,7 @@ struct VideoApp {
     input_folder: Option<PathBuf>,
     output_folder: Option<PathBuf>,
     videos: Vec<PathBuf>,
-    selected_video_idx: Option<usize>,
+    selected_file_idx: Option<usize>,
     media: Option<MediaSource>, // Replaced `cap` with `media`
     is_image: bool,             // Quick flag to toggle UI elements
     video_texture: Option<egui::TextureHandle>,
@@ -60,7 +61,7 @@ impl Default for VideoApp {
             input_folder: None,
             output_folder: None,
             videos: Vec::new(),
-            selected_video_idx: None,
+            selected_file_idx: None,
             media: None,
             is_image: false,
             video_texture: None,
@@ -161,7 +162,7 @@ impl VideoApp {
     }
 
     fn run_export(&self) {
-        let (Some(idx), Some(out_dir)) = (self.selected_video_idx, &self.output_folder) else {
+        let (Some(idx), Some(out_dir)) = (self.selected_file_idx, &self.output_folder) else {
             return;
         };
         let input_path = self.videos[idx].clone();
@@ -217,8 +218,12 @@ impl VideoApp {
             let _guard = guard;
 
             for (i, range) in ranges.iter().enumerate() {
-                let out_base = out_dir.join(format!("{}_range{}", stem, i));
-                println!("DBG: {} vs {:?}", format!("{}_range{}", stem, i), out_base);
+                let out_base = if ranges.len() > 1 {
+                    out_dir.join(format!("{}_range{}", &stem, i))
+                } else {
+                    out_dir.join(&stem)
+                };
+                println!("DBG: {:?}", out_base);
 
                 if !range.note.is_empty() {
                     let _ = std::fs::write(out_base.with_added_extension("txt"), &range.note);
@@ -292,7 +297,7 @@ impl VideoApp {
 
 impl eframe::App for VideoApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let mut video_to_load = None;
+        let mut file_idx_to_load = None;
 
         // Keyboard Logic (Disable for images to prevent accidental scrubbing)
         if !ctx.wants_keyboard_input() && !self.is_image {
@@ -372,10 +377,10 @@ impl eframe::App for VideoApp {
                     for (i, v) in self.videos.iter().enumerate() {
                         let name = v.file_name().unwrap().to_string_lossy();
                         if ui
-                            .selectable_label(self.selected_video_idx == Some(i), name)
+                            .selectable_label(self.selected_file_idx == Some(i), name)
                             .clicked()
                         {
-                            video_to_load = Some(i);
+                            file_idx_to_load = Some(i);
                         }
                     }
                 });
@@ -702,9 +707,18 @@ impl eframe::App for VideoApp {
         });
 
         // 6. Handle loading the new media depending on its extension
-        if let Some(idx) = video_to_load {
-            self.selected_video_idx = Some(idx);
+        if let Some(idx) = file_idx_to_load {
+            self.selected_file_idx = Some(idx);
             let path = &self.videos[idx];
+
+            // Read note from .txt file if it already exists
+            let p = path.with_extension("txt");
+            let note = if p.exists() {
+                fs::read_to_string(p).unwrap_or_default()
+            } else {
+                String::new()
+            };
+
             let ext = path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
 
             self.is_image = matches!(
@@ -721,7 +735,7 @@ impl eframe::App for VideoApp {
                         start_time: 0.0,
                         end_time: 0.0,
                         crop_rect_norm: None,
-                        note: String::new(),
+                        note: note,
                     }];
                     self.current_range_idx = 0;
                     self.current_time = 0.0;
@@ -740,7 +754,7 @@ impl eframe::App for VideoApp {
                         start_time: 0.0,
                         end_time: self.duration,
                         crop_rect_norm: None,
-                        note: String::new(),
+                        note: note,
                     }];
                     self.current_range_idx = 0;
                     self.current_time = 0.0;
