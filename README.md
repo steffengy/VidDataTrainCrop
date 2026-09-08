@@ -37,7 +37,7 @@ Inspired by https://github.com/lovisdotio/VidTrainPrep in some way.
 ### Prerequisites
 
 * **Rust:** [Install Rust](https://rustup.rs/)
-* **OpenCV:** Ensure OpenCV 4.x is installed on your system.
+* **OpenCV:** Ensure OpenCV 4.x or 5.x is installed on your system.
 * **FFmpeg:** Must be available in your system `PATH` for the export functionality to work.
 
 ### Installation

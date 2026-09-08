@@ -47,6 +47,7 @@ struct VideoApp {
     duration: f64,
     play_state: PlayState,
     native_fps: f64,
+    target_fps: f64,
     ranges: Vec<VideoRange>,
     current_range_idx: usize,
     drag_start_norm: Option<egui::Pos2>,
@@ -69,6 +70,7 @@ impl Default for VideoApp {
             duration: 0.0,
             play_state: PlayState::NotPlaying,
             native_fps: 30.0,
+            target_fps: std::env::var("TARGET_FPS").unwrap_or("16".to_string()).parse::<usize>().unwrap() as f64,
             ranges: vec![VideoRange {
                 start_time: 0.0,
                 end_time: 0.0,
@@ -214,6 +216,7 @@ impl VideoApp {
         }
         let guard = DropGuard(self.is_exporting.clone());
 
+        let fps_arg = format!("fps={}", self.target_fps);
         std::thread::spawn(move || {
             let _guard = guard;
 
@@ -244,7 +247,7 @@ impl VideoApp {
 
                 let mut filters = vec![];
                 if !is_img {
-                    filters.push("fps=16".to_string());
+                    filters.push(fps_arg.clone());
                 }
 
                 if let Some(ref norm) = range.crop_rect_norm {
@@ -409,7 +412,7 @@ impl eframe::App for VideoApp {
                             format!("Crop {}", i)
                         } else {
                             let duration = range.end_time - range.start_time;
-                            let frame_count_16fps = (duration * 16.0).round() as i32;
+                            let frame_count_targetfps = (duration * self.target_fps).round() as i32;
                             let start_frame = (range.start_time * self.native_fps).round() as i32;
                             let end_frame = (range.end_time * self.native_fps).round() as i32;
 
@@ -421,7 +424,7 @@ impl eframe::App for VideoApp {
                                 duration,
                                 start_frame,
                                 end_frame,
-                                frame_count_16fps
+                                frame_count_targetfps
                             )
                         };
 
@@ -562,7 +565,7 @@ impl eframe::App for VideoApp {
                     }
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label(format!("Target 16FPS: {:.1}", self.current_time * 16.0));
+                        ui.label(format!("Target {}FPS: {:.1}", self.target_fps, self.current_time * self.target_fps));
                     });
                 });
 
